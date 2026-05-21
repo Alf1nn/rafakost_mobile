@@ -18,15 +18,14 @@ class RoomDetailPage extends StatelessWidget {
     )}';
   }
 
-  // Fungsi untuk menggabungkan gambar utama dan galeri seperti di web (PHP)
   List<String> _getGalleryImages() {
-    List<String> gallery = [];
+    final List<String> gallery = [];
 
     if (room['images'] is List) {
       gallery.addAll((room['images'] as List).map((e) => e.toString()));
     }
 
-    String mainImage = room['image']?.toString() ?? '';
+    final mainImage = room['image']?.toString() ?? '';
 
     if (mainImage.isNotEmpty && !gallery.contains(mainImage)) {
       gallery.insert(0, mainImage);
@@ -35,396 +34,339 @@ class RoomDetailPage extends StatelessWidget {
     return gallery;
   }
 
+  String get _description {
+    final desc = room['description']?.toString().trim();
+
+    if (desc != null && desc.isNotEmpty && desc != 'null') {
+      return desc;
+    }
+
+    return 'Kamar A1 cocok untuk kamu yang membutuhkan tempat tinggal yang nyaman dan praktis. Kondisi kamar bersih dan cukup untuk aktivitas sehari-hari, dilengkapi dengan kasur ukuran single bed, meja, dan kursi. Penghuni juga mendapatkan akses ke kamar mandi luar digunakan bersama. Lingkungan kost yang tenang dan aman membuat kamar ini cocok untuk mahasiswa atau pekerja yang mencari hunian sederhana namun tetap nyaman.';
+  }
+
+  String get _bathroomType {
+    final value = room['kamar_mandi'] ??
+        room['bathroom_type'] ??
+        room['kamarMandi'] ??
+        'luar';
+
+    return value.toString().toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
     final galleryImages = _getGalleryImages();
+    final harga1 = room['harga_1_orang'] ?? room['harga'];
+    final harga2 = room['harga_2_orang'] ?? room['harga'];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
-      appBar: AppBar(
-        title: Text(
-          room['nama'] ?? 'Detail Kamar',
-          style: const TextStyle(fontWeight: FontWeight.w900),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // --- 1. GALLERY PAGER + ZOOM ---
-          _buildGallery(galleryImages),
-
-          const SizedBox(height: 20),
-
-          // --- 2. HEADER KAMAR ---
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            _buildHero(context, galleryImages),
+            Transform.translate(
+              offset: const Offset(0, -28),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+                child: Column(
+                  children: [
+                    _buildTitleCard(),
+                    const SizedBox(height: 14),
+                    _buildPriceCard(harga1, harga2),
+                    const SizedBox(height: 14),
+                    _buildSpecGrid(),
+                    const SizedBox(height: 14),
+                    _buildDescriptionCard(),
+                    const SizedBox(height: 14),
+                    _buildFacilitiesCard(),
+                    const SizedBox(height: 20),
+                    _buildBookingButton(context),
+                    const SizedBox(height: 28),
+                  ],
                 ),
-              ],
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHero(BuildContext context, List<String> images) {
+    return Stack(
+      children: [
+        SizedBox(
+          height: 230,
+          width: double.infinity,
+          child: images.isEmpty
+              ? Container(
+                  color: const Color(0xFFE5E7EB),
+                  child: const Center(
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 46,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                )
+              : PageView.builder(
+                  itemCount: images.length,
+                  itemBuilder: (context, index) {
+                    return Image.network(
+                      ApiConfig.imageUrl(images[index]),
+                      width: double.infinity,
+                      height: 230,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+
+                        return Container(
+                          color: const Color(0xFFE5E7EB),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFFE5E7EB),
+                          child: const Center(
+                            child: Icon(
+                              Icons.broken_image_outlined,
+                              size: 46,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+        ),
+
+        Positioned.fill(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.25),
+                  Colors.transparent,
+                  Colors.black.withOpacity(0.15),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        Positioned(
+          top: 12,
+          left: 12,
+          child: InkWell(
+            onTap: () => Navigator.pop(context),
+            borderRadius: BorderRadius.circular(100),
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.92),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTitleCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              room['nama']?.toString() ?? 'Kamar',
+              style: const TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              room['status']?.toString() ?? 'tersedia',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF2563EB),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceCard(dynamic harga1, dynamic harga2) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: _cardDecoration(),
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: const BoxDecoration(
+              color: Colors.black,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.attach_money_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  room['nama'] ?? 'Kamar',
-                  style: const TextStyle(
-                    fontSize: 24,
+                const Text(
+                  'Harga Sewa',
+                  style: TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF0F172A),
-                    height: 1.2,
                   ),
                 ),
-
-                const SizedBox(height: 6),
-
+                const SizedBox(height: 3),
                 Row(
                   children: [
-                    const Icon(
-                      Icons.location_on,
-                      size: 14,
-                      color: Color(0xFF9CA3AF),
+                    Text(
+                      rupiah(harga1),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                      ),
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        room['address'] ?? 'Rafa Kost / Purwokerto',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w500,
-                        ),
+                    const Text(
+                      '/bulan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF2563EB),
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 20),
-
-                // Harga
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Harga Sewa',
-                        style: TextStyle(
-                          color: Color(0xFF3B82F6),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-
-                      const SizedBox(height: 6),
-
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            rupiah(room['harga_1_orang'] ?? room['harga']),
-                            style: const TextStyle(
-                              color: Color(0xFF1E3A8A),
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 3, left: 4),
-                            child: Text(
-                              '/ bulan (1 Orang)',
-                              style: TextStyle(
-                                color: Color(0xFF64748B),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      Text(
-                        'Untuk 2 orang: ${rupiah(room['harga_2_orang'] ?? room['harga'])} / bulan',
-                        style: const TextStyle(
-                          color: Color(0xFF475569),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Specs Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: Row(
-                    children: [
-                      _buildSpecChip(
-                        Icons.bed_outlined,
-                        'KASUR',
-                        room['bed_type'] ?? 'Single Bed',
-                      ),
-                      const SizedBox(width: 10),
-                      _buildSpecChip(
-                        Icons.bathroom_outlined,
-                        'KAMAR MANDI',
-                        (room['bathroom_type'] ?? 'Luar')
-                            .toString()
-                            .toUpperCase(),
-                      ),
-                      const SizedBox(width: 10),
-                      _buildSpecChip(
-                        Icons.inventory_2_outlined,
-                        'PENYIMPANAN',
-                        room['size'] ?? 'Lemari',
-                      ),
-                      const SizedBox(width: 10),
-                      _buildSpecChip(
-                        Icons.electrical_services_outlined,
-                        'LISTRIK',
-                        room['electricity'] ?? 'Bebas(Normal)',
-                      ),
-                    ],
+                const SizedBox(height: 4),
+                const Divider(height: 8),
+                Text(
+                  '${rupiah(harga2)}/bulan (Untuk 2 orang)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          // --- 3. DESKRIPSI ---
-          _buildSectionCard(
-            title: 'Deskripsi',
-            child: Text(
-              room['description'] ??
-                  'Kamar ini cocok untuk kamu yang membutuhkan tempat tinggal yang nyaman dan praktis. Kondisi kamar bersih dan cukup untuk aktivitas sehari-hari, dilengkapi dengan fasilitas yang memadai.',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF4B5563),
-                height: 1.6,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          // --- 4. FASILITAS UMUM ---
-          _buildSectionCard(
-            title: 'Fasilitas Umum',
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 10,
-              children: _buildFacilities(room['facilities']),
-            ),
-          ),
-
-          // --- 5. PERATURAN KOST ---
-          if (room['rules'] != null &&
-              room['rules'] is List &&
-              (room['rules'] as List).isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildSectionCard(
-              title: 'Peraturan Kost',
-              child: Column(
-                children: (room['rules'] as List).map((rule) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(top: 6, right: 10),
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF2563EB),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        Expanded(
-                          child: Text(
-                            rule.toString(),
-                            style: const TextStyle(
-                              color: Color(0xFF4B5563),
-                              fontSize: 13,
-                              height: 1.5,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 24),
-
-          // --- 6. TOMBOL BOOKING ---
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BookingPage(room: room),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.receipt_long),
-              label: const Text(
-                'Sewa Sekarang',
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  // WIDGET GALERI PAGER + PINCH TO ZOOM
-  Widget _buildGallery(List<String> images) {
-    if (images.isEmpty) {
-      return Container(
-        height: 240,
-        decoration: BoxDecoration(
-          color: const Color(0xFFE5E7EB),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            size: 50,
-            color: Color(0xFF9CA3AF),
+  Widget _buildSpecGrid() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSpecBox(
+            icon: Icons.bathroom_outlined,
+            label: 'KAMAR MANDI',
+            value: _bathroomType,
           ),
         ),
-      );
-    }
-
-    return SizedBox(
-      height: 240,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: PageView.builder(
-          itemCount: images.length,
-          itemBuilder: (context, index) {
-            return InteractiveViewer(
-              panEnabled: true,
-              scaleEnabled: true,
-              minScale: 1.0,
-              maxScale: 4.0,
-              child: Image.network(
-                ApiConfig.imageUrl(images[index]),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-
-                // Loading image
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-
-                  return Container(
-                    color: const Color(0xFFE5E7EB),
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                },
-
-                // Jika gambar gagal dimuat
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: const Color(0xFFE5E7EB),
-                    child: const Center(
-                      child: Icon(
-                        Icons.broken_image_outlined,
-                        size: 48,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildSpecBox(
+            icon: Icons.inventory_2_outlined,
+            label: 'PENYIMPANAN',
+            value: room['size']?.toString() ?? 'LEMARI',
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  // WIDGET KOTAK SPESIFIKASI KECIL
-  Widget _buildSpecChip(IconData icon, String label, String sub) {
+  Widget _buildSpecBox({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      height: 94,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFE5E7EB)),
-        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            color: const Color(0xFF4B5563),
-            size: 22,
+            size: 26,
+            color: Colors.black,
           ),
           const SizedBox(height: 8),
           Text(
             label,
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-              color: Color(0xFF0F172A),
+              color: Colors.black,
+              height: 1.1,
             ),
           ),
           const SizedBox(height: 2),
           Text(
-            sub,
+            value.toUpperCase(),
+            textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF64748B),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF475569),
             ),
           ),
         ],
@@ -432,76 +374,159 @@ class RoomDetailPage extends StatelessWidget {
     );
   }
 
-  // WIDGET CARD UNTUK DESKRIPSI & FASILITAS
-  Widget _buildSectionCard({
-    required String title,
-    required Widget child,
-  }) {
+  Widget _buildDescriptionCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(18),
+      decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
+          const Text(
+            'Deskripsi',
+            style: TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.w900,
-              color: Color(0xFF0F172A),
+              color: Colors.black,
             ),
           ),
-          const SizedBox(height: 14),
-          child,
+          const SizedBox(height: 8),
+          Text(
+            _description,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF334155),
+              height: 1.55,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // DAFTAR FASILITAS FALLBACK
+  Widget _buildFacilitiesCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: _cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Fasilitas Umum',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _buildFacilities(room['facilities']),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookingButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton.icon(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BookingPage(room: room),
+            ),
+          );
+        },
+        icon: const Icon(Icons.payment_rounded, size: 18),
+        label: const Text(
+          'Lanjutkan Pembayaran',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0EA5E9),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+          ),
+        ),
+      ),
+    );
+  }
+
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFE5E7EB)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.04),
+          blurRadius: 14,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    );
+  }
+
   List<Widget> _buildFacilities(dynamic rawFacilities) {
-    final List<String> fasilitasList = [];
+    final List<String> list = [];
 
     if (rawFacilities is List && rawFacilities.isNotEmpty) {
-      fasilitasList.addAll(rawFacilities.map((e) => e.toString()));
+      list.addAll(rawFacilities.map((e) => e.toString()));
+    } else if (rawFacilities is String && rawFacilities.trim().isNotEmpty) {
+      list.addAll(
+        rawFacilities
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty),
+      );
     } else {
-      fasilitasList.addAll([
+      list.addAll([
         'Wifi Gratis',
-        'Air Bersih',
         'Listrik',
         'Dapur Bersama',
-        'Parkir',
+        'Dapur Bersama',
         'Kulkas Bersama',
       ]);
     }
 
-    return fasilitasList.map((fasilitas) {
+    return list.map((item) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: const Color(0xFFEFF6FF),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFBFDBFE)),
+          color: const Color(0xFF0EA5E9),
+          borderRadius: BorderRadius.circular(5),
         ),
-        child: Text(
-          fasilitas,
-          style: const TextStyle(
-            color: Color(0xFF2563EB),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.check_box_outline_blank_rounded,
+              size: 12,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              item,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
       );
     }).toList();

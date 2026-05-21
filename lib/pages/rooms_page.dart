@@ -26,6 +26,10 @@ class _RoomsPageState extends State<RoomsPage> {
 
   final TextEditingController searchController = TextEditingController();
 
+  static const blue = Color(0xFF0798E8);
+  static const darkText = Color(0xFF111111);
+  static const greyText = Color(0xFF8A8A8A);
+
   @override
   void initState() {
     super.initState();
@@ -130,13 +134,39 @@ class _RoomsPageState extends State<RoomsPage> {
     }).toList();
   }
 
-  String rupiah(dynamic value) {
+  int get totalKamar {
+    return rooms.length;
+  }
+
+  int get totalKamarMandiDalam {
+    return rooms.where((room) {
+      final value = (room['kamar_mandi'] ?? '').toString().toLowerCase();
+      return value.contains('dalam');
+    }).length;
+  }
+
+  int get totalKamarMandiLuar {
+    return rooms.where((room) {
+      final value = (room['kamar_mandi'] ?? '').toString().toLowerCase();
+      return value.contains('luar');
+    }).length;
+  }
+
+  String shortRupiah(dynamic value) {
     final number = int.tryParse(value.toString()) ?? 0;
 
-    return 'Rp ${number.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (match) => '${match[1]}.',
-    )}';
+    if (number >= 1000000) {
+      final juta = number / 1000000;
+      final text = juta % 1 == 0 ? juta.toStringAsFixed(0) : juta.toStringAsFixed(1);
+      return 'Rp ${text}Jt';
+    }
+
+    if (number >= 1000) {
+      final ribu = number ~/ 1000;
+      return 'Rp ${ribu}Ribu';
+    }
+
+    return 'Rp $number';
   }
 
   String roomImageUrl(dynamic image) {
@@ -152,12 +182,21 @@ class _RoomsPageState extends State<RoomsPage> {
     setState(() {});
   }
 
+  void openDetail(dynamic room) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoomDetailPage(room: room),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = filteredRooms;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: Colors.white,
       body: loading
           ? const Center(
               child: CircularProgressIndicator(),
@@ -165,27 +204,35 @@ class _RoomsPageState extends State<RoomsPage> {
           : RefreshIndicator(
               onRefresh: fetchRooms,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 80),
                 children: [
-                  const Text(
-                    'Daftar Kamar',
-                    style: TextStyle(
-                      fontSize: 24,
+                  Text(
+                    'Ada $totalKamar Kamar di Rafa Kost',
+                    style: const TextStyle(
+                      color: darkText,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
+                      decoration: TextDecoration.underline,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
-                    'Pilih kamar yang tersedia di Rafa Kost.',
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
+                  Text(
+                    'Rafa Kost menyediakan total $totalKamar kamar dengan\n'
+                    'pembagian $totalKamarMandiDalam kamar mandi dalam dan $totalKamarMandiLuar kamar\n'
+                    'mandi luar, memberikan kenyamanan serta privasi\n'
+                    'bagi setiap penghuni.',
+                    style: const TextStyle(
+                      color: darkText,
+                      fontSize: 11,
+                      height: 1.35,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
 
-                  const SizedBox(height: 16),
-
-                  searchBox(),
+                  if (widget.initialSearch.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    searchBox(),
+                  ],
 
                   const SizedBox(height: 16),
 
@@ -214,10 +261,11 @@ class _RoomsPageState extends State<RoomsPage> {
 
   Widget searchBox() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      height: 38,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(999),
         border: Border.all(
           color: const Color(0xFFE2E8F0),
         ),
@@ -227,28 +275,35 @@ class _RoomsPageState extends State<RoomsPage> {
           const Icon(
             Icons.search,
             color: Color(0xFF94A3B8),
+            size: 18,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: TextField(
               controller: searchController,
               textInputAction: TextInputAction.search,
+              style: const TextStyle(
+                fontSize: 12,
+                color: darkText,
+              ),
               decoration: const InputDecoration(
-                hintText: 'Cari nama kamar, lantai, kamar mandi...',
+                hintText: 'Cari kamar...',
                 hintStyle: TextStyle(
                   color: Color(0xFF94A3B8),
-                  fontSize: 14,
+                  fontSize: 12,
                 ),
                 border: InputBorder.none,
+                isDense: true,
               ),
             ),
           ),
           if (searchController.text.isNotEmpty)
-            IconButton(
-              onPressed: clearSearch,
-              icon: const Icon(
+            GestureDetector(
+              onTap: clearSearch,
+              child: const Icon(
                 Icons.close_rounded,
                 color: Color(0xFF64748B),
+                size: 18,
               ),
             ),
         ],
@@ -257,243 +312,214 @@ class _RoomsPageState extends State<RoomsPage> {
   }
 
   Widget roomCard(dynamic room) {
-    final image = room['image'];
-    final imageUrl = roomImageUrl(image);
+    final imageUrl = roomImageUrl(room['image']);
+    final status = (room['status'] ?? '').toString().toLowerCase();
+    final isAvailable = status == 'tersedia';
+
+    final price1 = shortRupiah(room['harga_1_orang']);
+    final price2 = shortRupiah(room['harga_2_orang']);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RoomDetailPage(room: room),
-              ),
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(18),
-                ),
+      height: 205,
+      margin: const EdgeInsets.only(bottom: 18),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11),
+              child: SizedBox(
+                height: 105,
                 child: imageUrl.isNotEmpty
                     ? Image.network(
                         imageUrl,
-                        height: 180,
-                        width: double.infinity,
                         fit: BoxFit.cover,
+                        width: double.infinity,
                         loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) {
-                            return child;
-                          }
-
-                          return placeholderImage(height: 180);
+                          if (loadingProgress == null) return child;
+                          return placeholderImage(height: 105);
                         },
                         errorBuilder: (context, error, stackTrace) {
-                          return placeholderImage(height: 180);
+                          return placeholderImage(height: 105);
                         },
                       )
-                    : placeholderImage(height: 180),
+                    : placeholderImage(height: 105),
               ),
-
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            room['nama'] ?? 'Kamar',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF0F172A),
-                            ),
-                          ),
-                        ),
-                        statusBadge(room['status']),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.layers_outlined,
-                          size: 16,
-                          color: Color(0xFF64748B),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            room['lantai'] ?? '-',
-                            style: const TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.bathroom_outlined,
-                          size: 16,
-                          color: Color(0xFF64748B),
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Kamar mandi ${room['kamar_mandi'] ?? '-'}',
-                            style: const TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Column(
-                        children: [
-                          priceRow(
-                            label: '1 orang',
-                            value: '${rupiah(room['harga_1_orang'])} / bulan',
-                            strong: true,
-                          ),
-                          const SizedBox(height: 6),
-                          priceRow(
-                            label: '2 orang',
-                            value: '${rupiah(room['harga_2_orang'])} / bulan',
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    SizedBox(
-                      height: 42,
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => RoomDetailPage(room: room),
-                            ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: const Text(
-                          'Lihat Detail',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget priceRow({
-    required String label,
-    required String value,
-    bool strong = false,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: strong ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-              fontWeight: strong ? FontWeight.w900 : FontWeight.w600,
-              fontSize: 13,
             ),
           ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            color: strong ? const Color(0xFF2563EB) : const Color(0xFF64748B),
-            fontWeight: FontWeight.w900,
-            fontSize: strong ? 14 : 13,
+
+          Positioned(
+            left: 8,
+            top: 10,
+            child: _topBadge(
+              icon: Icons.bed_rounded,
+              text: 'km, mandi ${room['kamar_mandi'] ?? '-'}',
+              background: Colors.white,
+              textColor: darkText,
+            ),
           ),
-        ),
-      ],
+
+          Positioned(
+            right: 13,
+            top: 10,
+            child: _topBadge(
+              icon: Icons.bed_rounded,
+              text: isAvailable ? 'Tersedia' : 'Terisi',
+              background: isAvailable
+                  ? const Color(0xFFC9F8D3)
+                  : const Color(0xFFFF9CA3),
+              textColor: isAvailable
+                  ? const Color(0xFF0B8F29)
+                  : const Color(0xFF8A1118),
+            ),
+          ),
+
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 73,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(9),
+                onTap: () => openDetail(room),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 14),
+                  padding: const EdgeInsets.fromLTRB(13, 15, 13, 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.20),
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              room['nama'] ?? 'Kamar',
+                              style: const TextStyle(
+                                color: darkText,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  color: Color(0xFF9E9E9E),
+                                  size: 17,
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  room['lantai'] ?? '-',
+                                  style: const TextStyle(
+                                    color: Color(0xFF9E9E9E),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 15),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 13,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE5F7FF),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '$price1 – $price2',
+                                style: const TextStyle(
+                                  color: darkText,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => openDetail(room),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: const BoxDecoration(
+                            color: blue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white,
+                            size: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget statusBadge(dynamic status) {
-    final value = (status ?? '').toString().toLowerCase();
-
-    final isAvailable = value == 'tersedia';
-
+  Widget _topBadge({
+    required IconData icon,
+    required String text,
+    required Color background,
+    required Color textColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
-        color: isAvailable ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
-        borderRadius: BorderRadius.circular(999),
+        color: background,
+        borderRadius: BorderRadius.circular(3),
       ),
-      child: Text(
-        isAvailable ? 'Tersedia' : 'Terisi',
-        style: TextStyle(
-          color: isAvailable ? const Color(0xFF15803D) : const Color(0xFFDC2626),
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: textColor,
+            size: 11,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget placeholderImage({double height = 180}) {
+  Widget placeholderImage({double height = 105}) {
     return Container(
       height: height,
       width: double.infinity,
@@ -501,7 +527,7 @@ class _RoomsPageState extends State<RoomsPage> {
       child: const Center(
         child: Icon(
           Icons.image_not_supported_outlined,
-          size: 48,
+          size: 34,
           color: Color(0xFF94A3B8),
         ),
       ),

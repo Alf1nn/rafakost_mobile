@@ -73,7 +73,7 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
         hasError = true;
       });
 
-      showMessage('Tidak bisa terhubung ke server: $e');
+      showMessage('Tidak bisa terhubung ke server.');
     }
   }
 
@@ -86,37 +86,44 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
   Color statusColor(String status) {
     if (status == 'expired') return const Color(0xFFDC2626);
     if (status == 'ends_today') return const Color(0xFFD97706);
-    if (status == 'ending_soon') return const Color(0xFFF59E0B);
+    if (status == 'ending_soon') return const Color(0xFF16A34A);
     if (status == 'active') return const Color(0xFF16A34A);
 
     return const Color(0xFF64748B);
   }
 
-  String statusText(String status) {
-    if (status == 'expired') return 'Telat Bayar';
-    if (status == 'ends_today') return 'Habis Hari Ini';
-    if (status == 'ending_soon') return 'Hampir Habis';
-    if (status == 'active') return 'Aktif';
+  Color statusBgColor(String status) {
+    if (status == 'expired') return const Color(0xFFFEE2E2);
+    if (status == 'ends_today') return const Color(0xFFFFF7ED);
+    if (status == 'ending_soon') return const Color(0xFFDCFCE7);
+    if (status == 'active') return const Color(0xFFDCFCE7);
 
-    return '-';
+    return const Color(0xFFE2E8F0);
   }
 
-  String daysLeftText(dynamic daysLeft) {
-    if (daysLeft == null) {
-      return 'Data masa sewa belum lengkap.';
+  String statusBadgeText(String status, dynamic daysLeft) {
+    final days = int.tryParse(daysLeft?.toString() ?? '');
+
+    if (status == 'expired') {
+      if (days != null && days < 0) {
+        return '• Telat ${days.abs()} hari';
+      }
+      return '• Telat bayar';
     }
 
-    final days = int.tryParse(daysLeft.toString()) ?? 0;
-
-    if (days < 0) {
-      return 'Masa sewa lewat ${days.abs()} hari.';
+    if (status == 'ends_today') {
+      return '• Hari ini';
     }
 
-    if (days == 0) {
-      return 'Masa sewa berakhir hari ini.';
+    if (days != null && days > 0) {
+      return '• $days hari lagi';
     }
 
-    return 'Sisa masa sewa $days hari lagi.';
+    if (status == 'active') {
+      return '• Aktif';
+    }
+
+    return '• -';
   }
 
   bool shouldShowRenewButton(String status) {
@@ -149,7 +156,7 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: Colors.white,
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -237,7 +244,7 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(26, 18, 26, 26),
       itemCount: rentals.length,
       itemBuilder: (context, index) {
         final rental = Map<String, dynamic>.from(rentals[index]);
@@ -249,49 +256,77 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
   Widget rentalCard(Map<String, dynamic> rental) {
     final kamar = rental['kamar'];
     final status = rental['status_masa_sewa'] ?? 'unknown';
-    final color = statusColor(status);
     final daysLeft = rental['days_left'];
 
+    final color = statusColor(status);
+    final bgColor = statusBgColor(status);
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.fromLTRB(28, 26, 24, 24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFFE5E7EB),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.13),
             blurRadius: 16,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // HEADER
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(
-                  kamar?['nama'] ?? 'Kamar',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF0F172A),
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      kamar?['nama'] ?? 'Kamar',
+                      style: const TextStyle(
+                        fontSize: 27,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.black,
+                        letterSpacing: -0.6,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Rafa Kost,Purwokerto',
+                      style: TextStyle(
+                        fontSize: 18,
+                        height: 1.1,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF9CA3AF),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
               Container(
+                margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+                  horizontal: 14,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: bgColor,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  statusText(status),
+                  statusBadgeText(status, daysLeft),
                   style: TextStyle(
                     color: color,
                     fontSize: 12,
@@ -302,43 +337,37 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
             ],
           ),
 
-          const SizedBox(height: 8),
-
-          Text(
-            'Invoice: ${rental['invoice'] ?? '-'}',
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 13,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          infoRow('Tanggal Masuk', rental['tanggal_masuk'] ?? '-'),
-          infoRow('Tanggal Habis', rental['tanggal_habis'] ?? '-'),
-          infoRow('Durasi', '${rental['durasi'] ?? '-'} Bulan'),
-          infoRow('Jumlah Orang', '${rental['orang'] ?? '-'} Orang'),
-
           const SizedBox(height: 12),
 
+          // INVOICE BADGE
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 5,
+            ),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFE5E7EB),
+              borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              daysLeftText(daysLeft),
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w800,
+              'INV: ${rental['invoice'] ?? '-'}',
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
 
+          const SizedBox(height: 22),
+
+          infoRow('Tanggal Masuk', rental['tanggal_masuk'] ?? '-'),
+          infoRow('Tanggal Habis', rental['tanggal_habis'] ?? '-'),
+          infoRow('Durasi', '${rental['durasi'] ?? '-'} Bulan'),
+          infoRow('Jumlah orang', '${rental['orang'] ?? '-'} Orang'),
+
           if (status == 'expired') ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 14),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -347,37 +376,44 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFFDE68A)),
               ),
-              child: Text(
+              child: const Text(
                 'Denda akan dihitung otomatis saat membuat invoice perpanjangan.',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Color(0xFF92400E),
                   fontWeight: FontWeight.w700,
                   height: 1.4,
+                  fontSize: 12,
                 ),
               ),
             ),
           ],
 
           if (shouldShowRenewButton(status)) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 20),
             SizedBox(
-              height: 46,
+              height: 44,
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
                   openRenewPage(rental);
                 },
-                icon: const Icon(Icons.refresh_rounded),
+                icon: const Icon(
+                  Icons.refresh_rounded,
+                  size: 18,
+                ),
                 label: Text(
                   renewButtonText(status),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2563EB),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(13),
                   ),
                 ),
               ),
@@ -390,18 +426,30 @@ class _MyRentalsPageState extends State<MyRentalsPage> {
 
   Widget infoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 13),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(color: Color(0xFF64748B)),
+              style: const TextStyle(
+                color: Color(0xFF8F8F8F),
+                fontSize: 17,
+                fontWeight: FontWeight.w500,
+                letterSpacing: -0.2,
+              ),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Color(0xFF8F8F8F),
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -0.2,
+            ),
           ),
         ],
       ),

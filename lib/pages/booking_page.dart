@@ -32,7 +32,8 @@ class _BookingPageState extends State<BookingPage> {
 
   int get hargaPerBulan {
     final harga1 = int.tryParse(widget.room['harga_1_orang'].toString()) ?? 0;
-    final harga2 = int.tryParse(widget.room['harga_2_orang'].toString()) ?? harga1;
+    final harga2 =
+        int.tryParse(widget.room['harga_2_orang'].toString()) ?? harga1;
 
     return orang >= 2 ? harga2 : harga1;
   }
@@ -129,19 +130,19 @@ class _BookingPageState extends State<BookingPage> {
       );
 
       final data = jsonDecode(response.body);
+
       if (response.statusCode == 403) {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              data['message'] ?? 'Akun belum terverifikasi.',
-            ),
+            content: Text(data['message'] ?? 'Akun belum terverifikasi.'),
           ),
         );
 
         return;
       }
+
       if (response.statusCode == 401) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.remove('api_token');
@@ -159,22 +160,26 @@ class _BookingPageState extends State<BookingPage> {
         return;
       }
 
-        if (response.statusCode == 200 && data['success'] == true) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Invoice berhasil dibuat: ${data['invoice']}'),
-            ),
-          );
+      if (response.statusCode == 200 && data['success'] == true) {
+        if (!mounted) return;
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => InvoicePage(
-                booking: data['booking'],
-              ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Invoice berhasil dibuat: ${data['invoice']}'),
+          ),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvoicePage(
+              booking: data['booking'],
             ),
-          );
-        } else {
+          ),
+        );
+      } else {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data['message'] ?? 'Gagal membuat invoice.'),
@@ -205,224 +210,361 @@ class _BookingPageState extends State<BookingPage> {
   @override
   Widget build(BuildContext context) {
     final roomName = widget.room['nama'] ?? 'Kamar';
+    final lantai = widget.room['lantai'] ?? '-';
+    final kamarMandi = widget.room['kamar_mandi'] ?? '-';
+    final status = widget.room['status'] ?? 'tersedia';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        surfaceTintColor: Colors.white,
+        leading: IconButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 18,
+            color: Colors.black,
+          ),
+        ),
         title: const Text(
           'Booking Kamar',
-          style: TextStyle(fontWeight: FontWeight.w900),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 15,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        backgroundColor: Colors.white,
+        centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 16,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+          children: [
+            roomHeaderCard(
+              roomName: roomName.toString(),
+              lantai: lantai.toString(),
+              kamarMandi: kamarMandi.toString(),
+              status: status.toString(),
             ),
+
+            const SizedBox(height: 24),
+
+            sectionTitle(
+              icon: Icons.calendar_month_outlined,
+              title: 'Detail Booking',
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('TANGGAL MASUK'),
+            dateField(),
+
+            const SizedBox(height: 16),
+
+            formLabel('DURASI SEWA'),
+            selectBox(
+              value: durasi,
+              items: const [1, 2, 3, 6, 12],
+              textBuilder: (value) => '$value Bulan',
+              onChanged: (value) {
+                setState(() {
+                  durasi = value;
+                });
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('Orang'),
+            selectBox(
+              value: orang,
+              items: const [1, 2],
+              textBuilder: (value) => '$value Orang',
+              onChanged: (value) {
+                setState(() {
+                  orang = value;
+                });
+              },
+            ),
+
+            const SizedBox(height: 26),
+
+            sectionTitle(
+              icon: Icons.person_outline_rounded,
+              title: 'Data Penyewa',
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('NAMA LENGKAP'),
+            inputField(
+              controller: nameController,
+              hint: 'Masukkan nama lengkap',
+              keyboardType: TextInputType.name,
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('NO WHATSAPP'),
+            inputField(
+              controller: phoneController,
+              hint: 'Contoh: 081234567890',
+              keyboardType: TextInputType.phone,
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('EMAIL'),
+            inputField(
+              controller: emailController,
+              hint: 'nama@email.com',
+              keyboardType: TextInputType.emailAddress,
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('ALAMAT'),
+            inputField(
+              controller: addressController,
+              hint: 'Masukkan alamat lengkap',
+              maxLines: 2,
+            ),
+
+            const SizedBox(height: 16),
+
+            formLabel('CATATAN'),
+            inputField(
+              controller: noteController,
+              hint: 'Opsional',
+              maxLines: 2,
+            ),
+
+            const SizedBox(height: 26),
+
+            sectionTitle(
+              icon: Icons.receipt_long_outlined,
+              title: 'Ringkasan Pembayaran',
+            ),
+
+            const SizedBox(height: 14),
+
+            summaryCard(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 18,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: SizedBox(
+            height: 48,
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: submitBooking,
+              icon: const Icon(
+                Icons.receipt_long_rounded,
+                size: 18,
+              ),
+              label: const Text(
+                'Buat Invoice Booking',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0EA5E9),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget roomHeaderCard({
+    required String roomName,
+    required String lantai,
+    required String kamarMandi,
+    required String status,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(28, 24, 16, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(
+          color: const Color(0xFFE5E7EB),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   roomName,
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 21,
+                    height: 1.1,
                     fontWeight: FontWeight.w900,
+                    color: Colors.black,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${widget.room['lantai'] ?? '-'} • Kamar mandi ${widget.room['kamar_mandi'] ?? '-'}',
+                  '$lantai - Kamar mandi $kamarMandi',
                   style: const TextStyle(
-                    color: Color(0xFF64748B),
-                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    height: 1.2,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF8E8E8E),
                   ),
                 ),
               ],
             ),
           ),
-
-          const SizedBox(height: 16),
-
-          section(
-            title: 'Detail Booking',
-            child: Column(
-              children: [
-                dateButton(),
-                const SizedBox(height: 12),
-                selectBox(
-                  label: 'Durasi',
-                  value: durasi,
-                  items: const [1, 2, 3, 6, 12],
-                  textBuilder: (value) => '$value Bulan',
-                  onChanged: (value) {
-                    setState(() {
-                      durasi = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 12),
-                selectBox(
-                  label: 'Jumlah Orang',
-                  value: orang,
-                  items: const [1, 2],
-                  textBuilder: (value) => '$value Orang',
-                  onChanged: (value) {
-                    setState(() {
-                      orang = value;
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          section(
-            title: 'Data Penyewa',
-            child: Column(
-              children: [
-                inputField(
-                  label: 'Nama Lengkap',
-                  controller: nameController,
-                  icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 12),
-                inputField(
-                  label: 'No WhatsApp',
-                  controller: phoneController,
-                  icon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 12),
-                inputField(
-                  label: 'Email',
-                  controller: emailController,
-                  icon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 12),
-                inputField(
-                  label: 'Alamat',
-                  controller: addressController,
-                  icon: Icons.location_on_outlined,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                inputField(
-                  label: 'Catatan',
-                  controller: noteController,
-                  icon: Icons.notes_outlined,
-                  maxLines: 2,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          section(
-            title: 'Ringkasan Pembayaran',
-            child: Column(
-              children: [
-                summaryRow('Harga per bulan', rupiah(hargaPerBulan)),
-                summaryRow('Durasi', '$durasi Bulan'),
-                summaryRow('Jumlah orang', '$orang Orang'),
-                const Divider(height: 28),
-                summaryRow(
-                  'Total',
-                  rupiah(totalHarga),
-                  isTotal: true,
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          SizedBox(
-            height: 54,
-            child: ElevatedButton.icon(
-              onPressed: submitBooking,
-              icon: const Icon(Icons.receipt_long),
-              label: const Text(
-                'Buat Invoice Booking',
-                style: TextStyle(fontWeight: FontWeight.w900),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
+          const SizedBox(width: 12),
+          statusBadge(status),
         ],
       ),
     );
   }
 
-  Widget section({
-    required String title,
-    required Widget child,
-  }) {
+  Widget statusBadge(String status) {
+    final isAvailable = status.toLowerCase() == 'tersedia';
+
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 5,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      decoration: BoxDecoration(
+        color: isAvailable
+            ? const Color(0xFF7DD3FC)
+            : const Color(0xFFFCA5A5),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Icon(
+            isAvailable ? Icons.bed_rounded : Icons.close_rounded,
+            size: 14,
+            color: Colors.black87,
+          ),
+          const SizedBox(width: 4),
           Text(
-            title,
+            isAvailable ? 'Tersedia' : 'Terisi',
             style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
+              color: Colors.black87,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 14),
-          child,
         ],
       ),
     );
   }
 
-  Widget dateButton() {
+  Widget sectionTitle({
+    required IconData icon,
+    required String title,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 19,
+          color: Colors.black,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget formLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFFB6B6B6),
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.1,
+        ),
+      ),
+    );
+  }
+
+  Widget dateField() {
     return InkWell(
       onTap: pickDate,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(6),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(14),
+          color: const Color(0xFFFAFAFA),
+          border: Border.all(
+            color: const Color(0xFFDADDE1),
+          ),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined, color: Color(0xFF64748B)),
-            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Tanggal Masuk: ${formatDate(tanggalMasuk)}',
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                formatDate(tanggalMasuk),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
+            ),
+            const Icon(
+              Icons.calendar_today_outlined,
+              size: 18,
+              color: Colors.black87,
             ),
           ],
         ),
@@ -431,7 +573,6 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget selectBox({
-    required String label,
     required int value,
     required List<int> items,
     required String Function(int) textBuilder,
@@ -439,7 +580,18 @@ class _BookingPageState extends State<BookingPage> {
   }) {
     return DropdownButtonFormField<int>(
       value: value,
-      decoration: inputDecoration(label, Icons.arrow_drop_down_circle_outlined),
+      isExpanded: true,
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: Color(0xFFB6B6B6),
+      ),
+      decoration: fieldDecoration(),
+      dropdownColor: Colors.white,
+      style: const TextStyle(
+        color: Colors.black,
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+      ),
       items: items
           .map(
             (item) => DropdownMenuItem<int>(
@@ -457,9 +609,8 @@ class _BookingPageState extends State<BookingPage> {
   }
 
   Widget inputField({
-    required String label,
     required TextEditingController controller,
-    required IconData icon,
+    required String hint,
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
@@ -467,48 +618,88 @@ class _BookingPageState extends State<BookingPage> {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      decoration: inputDecoration(label, icon),
+      decoration: fieldDecoration(hint: hint),
     );
   }
 
-  InputDecoration inputDecoration(String label, IconData icon) {
+  InputDecoration fieldDecoration({String? hint}) {
     return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF94A3B8)),
+      hintText: hint,
+      hintStyle: const TextStyle(
+        color: Color(0xFFB6B6B6),
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+      ),
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
+      fillColor: const Color(0xFFFAFAFA),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 10,
+      ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(
+          color: Color(0xFFDADDE1),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(
+          color: Color(0xFF0EA5E9),
+          width: 1.3,
+        ),
+      ),
+    );
+  }
+
+  Widget summaryCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Column(
+        children: [
+          summaryRow('Harga per bulan', rupiah(hargaPerBulan)),
+          summaryRow('Durasi', '$durasi Bulan'),
+          summaryRow('Jumlah orang', '$orang Orang'),
+          const Divider(height: 24),
+          summaryRow(
+            'Total',
+            rupiah(totalHarga),
+            isTotal: true,
+          ),
+        ],
       ),
     );
   }
 
   Widget summaryRow(String label, String value, {bool isTotal = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 9),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
               style: TextStyle(
-                color: isTotal ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                color: isTotal ? Colors.black : const Color(0xFF64748B),
                 fontWeight: isTotal ? FontWeight.w900 : FontWeight.w600,
-                fontSize: isTotal ? 16 : 14,
+                fontSize: isTotal ? 15 : 13,
               ),
             ),
           ),
           Text(
             value,
             style: TextStyle(
-              color: isTotal ? const Color(0xFF2563EB) : const Color(0xFF0F172A),
+              color: isTotal ? const Color(0xFF0EA5E9) : Colors.black,
               fontWeight: FontWeight.w900,
-              fontSize: isTotal ? 18 : 14,
+              fontSize: isTotal ? 16 : 13,
             ),
           ),
         ],

@@ -277,48 +277,88 @@ class _IdentityPageState extends State<IdentityPage> {
     final uploadAllowed = canUpload(status);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: Colors.white,
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: fetchProfile,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(45, 28, 45, 24),
                 children: [
                   const Text(
                     'Verifikasi Identitas',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF0F172A),
+                      color: Color(0xFF111111),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   const Text(
-                    'Upload foto KTP, live selfie wajah, dan selfie sambil pegang KTP untuk mengaktifkan fitur booking kamar.',
+                    'Upload foto KTP,live selfie wajah,dan selfie sambil\npegang KTP untuk mengaktifkan fitur booking\nkamar.',
                     style: TextStyle(
-                      color: Color(0xFF64748B),
-                      height: 1.5,
+                      color: Color(0xFF111111),
+                      fontSize: 18,
+                      height: 1.35,
+                      fontWeight: FontWeight.w400,
                     ),
                   ),
-
-                  const SizedBox(height: 18),
-
-                  statusBanner(color, status),
-
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 28),
 
                   if (status == 'approved')
-                    approvedCard()
-                  else if (status == 'pending')
-                    pendingCard()
-                  else
-                    uploadCard(uploadAllowed),
+                    approvedSuccessBanner()
+                  else ...[
+                    statusBanner(color, status),
+                    const SizedBox(height: 16),
+                    if (status == 'pending')
+                      pendingCard()
+                    else
+                      uploadCard(uploadAllowed),
+                  ],
 
                   const SizedBox(height: 24),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget approvedSuccessBanner() {
+    return Container(
+      width: double.infinity,
+      height: 74,
+      padding: const EdgeInsets.symmetric(horizontal: 22),
+      decoration: BoxDecoration(
+        color: const Color(0xFFC9F8D3),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 49,
+            height: 49,
+            decoration: const BoxDecoration(
+              color: Color(0xFF00C928),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_box_outlined,
+              color: Colors.white,
+              size: 25,
+            ),
+          ),
+          const SizedBox(width: 18),
+          const Text(
+            'Identitas disetujui',
+            style: TextStyle(
+              color: Color(0xFF00A824),
+              fontSize: 19,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -369,45 +409,6 @@ class _IdentityPageState extends State<IdentityPage> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget approvedCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: const [
-          Icon(
-            Icons.verified_rounded,
-            color: Color(0xFF16A34A),
-            size: 70,
-          ),
-          SizedBox(height: 14),
-          Text(
-            'Identitas kamu sudah terverifikasi.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 18,
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Sekarang kamu bisa mencari dan booking kamar.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Color(0xFF64748B),
-              height: 1.5,
             ),
           ),
         ],
@@ -478,9 +479,7 @@ class _IdentityPageState extends State<IdentityPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           stepsInfo(),
-
           const SizedBox(height: 22),
-
           uploadBox(
             title: 'Foto KTP',
             subtitle: 'Pilih foto KTP dari galeri. JPG, PNG, WEBP — maks 4MB.',
@@ -489,9 +488,7 @@ class _IdentityPageState extends State<IdentityPage> {
             onTap: pickKtp,
             buttonText: 'Pilih Foto KTP',
           ),
-
           const SizedBox(height: 16),
-
           Row(
             children: [
               Expanded(
@@ -519,9 +516,7 @@ class _IdentityPageState extends State<IdentityPage> {
               ),
             ],
           ),
-
           const SizedBox(height: 18),
-
           infoNote(
             color: const Color(0xFFF8FAFC),
             borderColor: const Color(0xFFE2E8F0),
@@ -530,9 +525,7 @@ class _IdentityPageState extends State<IdentityPage> {
             text:
                 'Sistem ML akan mengecek foto KTP dan live selfie wajah. Selfie sambil pegang KTP disimpan sebagai bukti tambahan untuk admin jika hasil masuk review manual.',
           ),
-
           const SizedBox(height: 12),
-
           infoNote(
             color: const Color(0xFFFEF2F2),
             borderColor: const Color(0xFFFECACA),
@@ -541,9 +534,7 @@ class _IdentityPageState extends State<IdentityPage> {
             text:
                 'Rafa Kost khusus perempuan. Jika sistem mendeteksi laki-laki dengan confidence tinggi, verifikasi akan ditolak otomatis.',
           ),
-
           const SizedBox(height: 22),
-
           SizedBox(
             height: 54,
             width: double.infinity,
@@ -671,7 +662,9 @@ class _IdentityPageState extends State<IdentityPage> {
           color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: file == null ? const Color(0xFFCBD5E1) : const Color(0xFF2563EB),
+            color: file == null
+                ? const Color(0xFFCBD5E1)
+                : const Color(0xFF2563EB),
             width: 1.4,
           ),
         ),
@@ -704,9 +697,7 @@ class _IdentityPageState extends State<IdentityPage> {
                   color: const Color(0xFF94A3B8),
                 ),
               ),
-
             const SizedBox(height: 12),
-
             Text(
               title,
               textAlign: TextAlign.center,
@@ -715,22 +706,20 @@ class _IdentityPageState extends State<IdentityPage> {
                 color: Color(0xFF334155),
               ),
             ),
-
             const SizedBox(height: 4),
-
             Text(
               file == null ? subtitle : '✓ Foto sudah dipilih',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: file == null ? const Color(0xFF64748B) : const Color(0xFF2563EB),
+                color: file == null
+                    ? const Color(0xFF64748B)
+                    : const Color(0xFF2563EB),
                 fontSize: compact ? 11 : 12,
                 fontWeight: file == null ? FontWeight.w500 : FontWeight.w800,
                 height: 1.35,
               ),
             ),
-
             const SizedBox(height: 12),
-
             Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: 12,

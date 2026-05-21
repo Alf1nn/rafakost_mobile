@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'beranda_page.dart';
@@ -22,9 +23,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
   String userEmail = '';
   String kamarSearchKeyword = '';
 
-  final titles = const [
+  final List<String> pageTitles = const [
     'Beranda',
-    'Kamar Saya',
+    'Kamar saya',
     'Kamar',
     'Maps',
     'Verifikasi',
@@ -38,6 +39,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
 
   Future<void> loadUser() async {
     final prefs = await SharedPreferences.getInstance();
+
+    if (!mounted) return;
 
     setState(() {
       userName = prefs.getString('user_name') ?? 'User';
@@ -123,73 +126,65 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
+      backgroundColor: Colors.white,
+
+      // TOP NAVBAR
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(86),
+        preferredSize: const Size.fromHeight(42),
         child: SafeArea(
           bottom: false,
           child: Container(
-            height: 86,
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(
                 bottom: BorderSide(
                   color: Color(0xFFE5E7EB),
-                  width: 1,
+                  width: 0.6,
                 ),
               ),
             ),
             child: Row(
               children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.home_work_rounded,
-                    color: Color(0xFF2563EB),
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      const Text(
-                        'Rafa Kost',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: Color(0xFF0F172A),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      Image.asset(
+                        'assets/icons/iconnav.png',
+                        width: 15,
+                        height: 15,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(
+                            Icons.circle_outlined,
+                            size: 15,
+                            color: Colors.black,
+                          );
+                        },
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(width: 4),
                       Text(
-                        titles[currentIndex],
+                        pageTitles[currentIndex],
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: Color(0xFF64748B),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
                         ),
                       ),
                     ],
                   ),
                 ),
+
                 PopupMenuButton<String>(
-                  offset: const Offset(0, 48),
+                  offset: const Offset(0, 34),
                   color: Colors.white,
+                  elevation: 6,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   onSelected: (value) {
                     if (value == 'logout') {
@@ -200,21 +195,22 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                     PopupMenuItem<String>(
                       enabled: false,
                       child: SizedBox(
-                        width: 230,
+                        width: 210,
                         child: Row(
                           children: [
                             CircleAvatar(
-                              radius: 22,
-                              backgroundColor: const Color(0xFFEFF6FF),
+                              radius: 18,
+                              backgroundColor: const Color(0xFFBDEBFF),
                               child: Text(
                                 initial,
                                 style: const TextStyle(
-                                  color: Color(0xFF2563EB),
-                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF1677A8),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,8 +221,9 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      color: Color(0xFF0F172A),
-                                      fontWeight: FontWeight.w900,
+                                      color: Color(0xFF111827),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                   if (userEmail.isNotEmpty)
@@ -235,8 +232,8 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                        color: Color(0xFF64748B),
-                                        fontSize: 12,
+                                        color: Color(0xFF9CA3AF),
+                                        fontSize: 11,
                                       ),
                                     ),
                                 ],
@@ -254,67 +251,57 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                           Icon(
                             Icons.logout_rounded,
                             color: Color(0xFFDC2626),
+                            size: 18,
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 8),
                           Text(
                             'Logout',
                             style: TextStyle(
                               color: Color(0xFFDC2626),
-                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 7,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 8,
+                        backgroundColor: const Color(0xFFBDEBFF),
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            color: Color(0xFF1677A8),
+                            fontSize: 7,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 15,
-                          backgroundColor: const Color(0xFFEFF6FF),
-                          child: Text(
-                            initial,
-                            style: const TextStyle(
-                              color: Color(0xFF2563EB),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
+                      const SizedBox(width: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 90),
+                        child: Text(
+                          userName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF111827),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 7),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 82),
-                          child: Text(
-                            userName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF0F172A),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF334155),
-                          size: 18,
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0xFF111827),
+                        size: 14,
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -322,54 +309,50 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           ),
         ),
       ),
+
       body: pages[currentIndex],
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: Color(0xFFE5E7EB),
-              width: 1,
-            ),
-          ),
+
+      // BOTTOM NAVBAR
+      bottomNavigationBar: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.noScaling,
         ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              children: [
-                navItem(
-                  index: 0,
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home_rounded,
-                  label: 'Beranda',
-                ),
-                navItem(
-                  index: 1,
-                  icon: Icons.meeting_room_outlined,
-                  activeIcon: Icons.meeting_room_rounded,
-                  label: 'Kamar saya',
-                ),
-                navItem(
-                  index: 2,
-                  icon: Icons.bed_outlined,
-                  activeIcon: Icons.bed_rounded,
-                  label: 'Kamar',
-                ),
-                navItem(
-                  index: 3,
-                  icon: Icons.location_on_outlined,
-                  activeIcon: Icons.location_on_rounded,
-                  label: 'Maps',
-                ),
-                navItem(
-                  index: 4,
-                  icon: Icons.person_outline_rounded,
-                  activeIcon: Icons.person_rounded,
-                  label: 'Verifikasi',
-                ),
-              ],
+        child: Container(
+          color: Colors.white,
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 46,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  bottomNavItem(
+                    index: 0,
+                    label: 'Beranda',
+                    iconPath: 'assets/icons/home.svg',
+                  ),
+                  bottomNavItem(
+                    index: 1,
+                    label: 'Kamar saya',
+                    iconPath: 'assets/icons/door.svg',
+                  ),
+                  bottomNavItem(
+                    index: 2,
+                    label: 'Kamar',
+                    iconPath: 'assets/icons/bed.svg',
+                  ),
+                  bottomNavItem(
+                    index: 3,
+                    label: 'Maps',
+                    iconPath: 'assets/icons/maps.svg',
+                  ),
+                  bottomNavItem(
+                    index: 4,
+                    label: 'Verifikasi',
+                    iconPath: 'assets/icons/profile.svg',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -377,45 +360,66 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     );
   }
 
-  Widget navItem({
+  Widget bottomNavItem({
     required int index,
-    required IconData icon,
-    required IconData activeIcon,
     required String label,
+    required String iconPath,
   }) {
     final active = currentIndex == index;
 
+    const activeColor = Color(0xFF0798E8);
+    const inactiveColor = Color(0xFFBCBEC0);
+
+    final color = active ? activeColor : inactiveColor;
+
     return Expanded(
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            currentIndex = index;
-          });
-        },
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              active ? activeIcon : icon,
-              size: 23,
-              color: active
-                  ? const Color(0xFF2563EB)
-                  : const Color(0xFF9CA3AF),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                color: active
-                    ? const Color(0xFF2563EB)
-                    : const Color(0xFF9CA3AF),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                currentIndex = index;
+              });
+            },
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            child: SizedBox(
+              height: 46,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(
+                    iconPath,
+                    width: 21,
+                    height: 21,
+                    colorFilter: ColorFilter.mode(
+                      color,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 10,
+                      height: 1,
+                      letterSpacing: -0.25,
+                      fontWeight: FontWeight.w500,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

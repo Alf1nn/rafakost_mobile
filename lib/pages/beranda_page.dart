@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class BerandaPage extends StatefulWidget {
   final void Function(String keyword)? onSearchKamar;
@@ -20,6 +21,10 @@ class BerandaPage extends StatefulWidget {
 
 class _BerandaPageState extends State<BerandaPage> {
   final searchController = TextEditingController();
+
+  static const blue = Color(0xFF0798E8);
+  static const darkText = Color(0xFF111111);
+  static const greyText = Color(0xFF8A8A8A);
 
   @override
   void dispose() {
@@ -46,11 +51,11 @@ class _BerandaPageState extends State<BerandaPage> {
         padding: EdgeInsets.zero,
         children: [
           _buildHeroSection(),
-          _buildQuickActions(),
           _buildTentangKamiSection(),
+          _buildBenefitSection(),
           _buildFasilitasSection(),
           _buildTestimoniSection(),
-          const SizedBox(height: 60),
+          const SizedBox(height: 70),
         ],
       ),
     );
@@ -58,124 +63,53 @@ class _BerandaPageState extends State<BerandaPage> {
 
   Widget _buildHeroSection() {
     return SizedBox(
-      height: 450,
+      height: 296,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(
-            'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=800',
+          Image.asset(
+            'assets/images/bg_utama.png',
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Container(
-                color: const Color(0xFF1E293B),
-              );
-            },
           ),
           Container(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black.withOpacity(0.22),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 80, 20, 20),
+            padding: const EdgeInsets.fromLTRB(33, 70, 33, 0),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Row(
                   children: [
-                    Icon(Icons.home_work, color: Colors.white, size: 36),
-                    SizedBox(width: 12),
-                    Text(
+                    _assetIcon(
+                      'assets/images/logo.png',
+                      width: 31,
+                      height: 31,
+                    ),
+                    const SizedBox(width: 7),
+                    const Text(
                       'Rafa Kost',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 36,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 26,
+                        height: 1,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
                 const Text(
-                  'Nyaman, Aman, Terjangkau',
-                  textAlign: TextAlign.center,
+                  'Nyaman, Aman,\nTerjangkau',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    height: 1.3,
+                    fontSize: 25,
+                    height: 0.95,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Temukan hunian nyaman dengan fasilitas lengkap dan lokasi strategis.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFE5E7EB),
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(50),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
-                        blurRadius: 14,
-                        offset: const Offset(0, 7),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 12, right: 8),
-                        child: Icon(Icons.search, color: Colors.grey),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: searchController,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: (_) => submitSearch(),
-                          decoration: const InputDecoration(
-                            hintText: 'Cari kamar mandi luar...',
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      ElevatedButton(
-                        onPressed: submitSearch,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF2563EB),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Cari',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 20),
+                _buildSearchBar(),
               ],
             ),
           ),
@@ -184,26 +118,69 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  Widget _buildQuickActions() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+  Widget _buildSearchBar() {
+    return Container(
+      height: 31,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.10),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.only(left: 12, right: 4),
       child: Row(
         children: [
+          const Icon(
+            Icons.search_rounded,
+            color: Color(0xFFB8B8B8),
+            size: 16,
+          ),
+          const SizedBox(width: 8),
           Expanded(
-            child: _quickButton(
-              icon: Icons.bed_rounded,
-              title: 'Lihat Kamar',
-              subtitle: 'Kamar tersedia',
-              onTap: widget.onOpenKamar,
+            child: TextField(
+              controller: searchController,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => submitSearch(),
+              style: const TextStyle(
+                fontSize: 11,
+                color: darkText,
+              ),
+              decoration: const InputDecoration(
+                hintText: 'Cari kamar berdasarkan tipe',
+                hintStyle: TextStyle(
+                  color: Color(0xFFB8B8B8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.only(bottom: 1),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _quickButton(
-              icon: Icons.location_on_rounded,
-              title: 'Lokasi',
-              subtitle: 'Alamat kos',
-              onTap: widget.onOpenMaps,
+          GestureDetector(
+            onTap: submitSearch,
+            child: Container(
+              height: 25,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: blue,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Cari',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ],
@@ -211,134 +188,74 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  Widget _quickButton({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF2563EB),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildTentangKamiSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
+      padding: const EdgeInsets.fromLTRB(33, 32, 33, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('TENTANG KAMI'),
-          const SizedBox(height: 12),
+          _sectionTitle('TENTANG KAMI'),
+          const SizedBox(height: 11),
           const Text(
             'Kadang, tempat terbaik itu nggak perlu dicari jauh-jauh.',
             style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-              height: 1.3,
+              color: darkText,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           const Text(
             'Hunian nyaman bisa jadi lebih dekat dari yang kamu kira.',
             style: TextStyle(
-              color: Colors.black54,
-              fontSize: 14,
+              color: darkText,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            '#RAFAKOST',
-            style: TextStyle(
-              color: Color(0xFF2563EB),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
-                child: _roundedImage(
-                  'https://images.unsplash.com/photo-1554995207-c18c203602cb?fit=crop&w=400',
-                  height: 180,
+                child: _assetImageBox(
+                  'assets/images/tentangkami1.png',
+                  height: 139,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    bottomLeft: Radius.circular(8),
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 4),
               Expanded(
-                child: _roundedImage(
-                  'https://images.unsplash.com/photo-1502672260266-1c1de2d9d0cb?fit=crop&w=400',
-                  height: 180,
+                child: _assetImageBox(
+                  'assets/images/tentangkami2.png',
+                  height: 139,
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
+                  ),
                 ),
               ),
             ],
           ),
-
-          const SizedBox(height: 20),
-
+          const SizedBox(height: 14),
           RichText(
             text: const TextSpan(
               style: TextStyle(
-                color: Colors.black54,
-                height: 1.6,
-                fontSize: 14,
+                color: greyText,
+                fontSize: 11,
+                height: 1.55,
+                fontWeight: FontWeight.w400,
               ),
               children: [
                 TextSpan(
                   text: 'Rafa Kost ',
                   style: TextStyle(
-                    color: Color(0xFF2563EB),
-                    fontWeight: FontWeight.bold,
+                    color: blue,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 TextSpan(
@@ -353,70 +270,193 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  Widget _buildFasilitasSection() {
-    final fasilitas = [
-      {
-        'title': 'Bebas Listrik',
-        'img':
-            'https://images.unsplash.com/photo-1544724569-5f546fd6f2b6?fit=crop&w=300',
-      },
-      {
-        'title': 'Air',
-        'img':
-            'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?fit=crop&w=300',
-      },
-      {
-        'title': 'Dapur Bersama',
-        'img':
-            'https://images.unsplash.com/photo-1556910103-1c02745aae4d?fit=crop&w=300',
-      },
-      {
-        'title': 'Parkiran',
-        'img':
-            'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?fit=crop&w=300',
-      },
-      {
-        'title': 'Lokasi Strategis',
-        'img':
-            'https://images.unsplash.com/photo-1524661135-423995f22d0b?fit=crop&w=300',
-      },
-      {
-        'title': 'Wifi',
-        'img':
-            'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?fit=crop&w=300',
-      },
-      {
-        'title': 'CCTV',
-        'img':
-            'https://images.unsplash.com/photo-1557800636-894a64c1696f?fit=crop&w=300',
-      },
-    ];
+  Widget _buildBenefitSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(33, 24, 33, 0),
+      child: Column(
+        children: [
+          _benefitItem(
+            iconPath: 'assets/images/nyaman-logo.svg',
+            title: 'Nyaman',
+            subtitle: 'Kamar bersih, tenang, dan nyaman',
+          ),
+          const SizedBox(height: 15),
+          _benefitItem(
+            iconPath: 'assets/images/aman-logo.svg',
+            title: 'Aman',
+            subtitle: 'Lingkungan terjaga dengan baik 24/7',
+          ),
+          const SizedBox(height: 15),
+          _benefitItem(
+            iconPath: 'assets/images/terjangkau-logo.svg',
+            title: 'Terjangkau',
+            subtitle: 'Harga bersahabat sesuai kebutuhan',
+          ),
+        ],
+      ),
+    );
+  }
 
-    return Container(
-      color: Colors.grey.shade100,
-      padding: const EdgeInsets.symmetric(vertical: 40),
+  Widget _benefitItem({
+    required String iconPath,
+    required String title,
+    required String subtitle,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: const Color(0xFFD8F2FF),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          padding: const EdgeInsets.all(9),
+          child: _assetIcon(
+            iconPath,
+            fit: BoxFit.contain,
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: darkText,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  color: Color(0xFFC3C3C3),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFasilitasSection() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(33, 47, 33, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: _FasilitasHeader(),
+          _sectionTitle('FASILITAS'),
+          const SizedBox(height: 13),
+          const Text(
+            'Beberapa fasilitas rafa kost',
+            style: TextStyle(
+              color: darkText,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 3),
+          const Text(
+            'Nikmati berbagai fasilitas yang dirancang untuk\nmenunjang kenyamanan dan kebutuhan harian\nAnda.',
+            style: TextStyle(
+              color: darkText,
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 16),
 
+          // Row 1
           SizedBox(
-            height: 140,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: fasilitas.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 16),
-              itemBuilder: (context, index) {
-                return _buildCardFasilitas(
-                  fasilitas[index]['title']!,
-                  fasilitas[index]['img']!,
-                );
-              },
+            height: 126,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _fasilitasCard(
+                    title: 'Bebas Listrik',
+                    subtitle: '(Pemakaian Sewajarnya)',
+                    imagePath: 'assets/images/bebaslistrik-fasilitas.png',
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: _fasilitasCard(
+                    title: 'Air',
+                    subtitle: '(Pemakaian Sewajarnya)',
+                    imagePath: 'assets/images/air-fasilitas.png',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+
+          // Row 2
+          SizedBox(
+            height: 126,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _fasilitasCard(
+                    title: 'Parkiran',
+                    subtitle: '',
+                    imagePath: 'assets/images/parkiran-fasilitas.png',
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: _fasilitasCard(
+                    title: 'Dapur\nBersama',
+                    subtitle: '',
+                    imagePath: 'assets/images/dapur-fasilitas.png',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+
+          // Row 3
+          SizedBox(
+            height: 126,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _fasilitasCard(
+                    title: 'Lokasi\nStrategis',
+                    subtitle: '',
+                    imagePath: 'assets/images/lokasi-fasilitas.png',
+                  ),
+                ),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: _fasilitasCard(
+                    title: 'Wifi',
+                    subtitle: '',
+                    imagePath: 'assets/images/wifi-fasilitas.png',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 5),
+
+          // CCTV full width
+          SizedBox(
+            width: double.infinity,
+            height: 126,
+            child: _fasilitasCard(
+              title: 'CCTV',
+              subtitle: '',
+              imagePath: 'assets/images/cctv-fasilitas.png',
             ),
           ),
         ],
@@ -424,242 +464,258 @@ class _BerandaPageState extends State<BerandaPage> {
     );
   }
 
-  Widget _buildCardFasilitas(String title, String imageUrl) {
-    return Container(
-      width: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(
-          image: NetworkImage(imageUrl),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.42),
-            BlendMode.darken,
+  Widget _fasilitasCard({
+    required String title,
+    required String subtitle,
+    required String imagePath,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(7),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            imagePath,
+            fit: BoxFit.cover,
           ),
-        ),
-      ),
-      alignment: Alignment.center,
-      padding: const EdgeInsets.all(12),
-      child: Text(
-        title,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
+          Container(
+            color: Colors.black.withOpacity(0.18),
+          ),
+          Positioned(
+            left: 18,
+            bottom: 17,
+            right: 10,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    height: 0.95,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 7,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTestimoniSection() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      padding: const EdgeInsets.fromLTRB(33, 44, 33, 0),
       child: Column(
         children: [
           RichText(
+            textAlign: TextAlign.center,
             text: const TextSpan(
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
               ),
               children: [
                 TextSpan(
                   text: 'Apa Kata ',
-                  style: TextStyle(color: Colors.black87),
+                  style: TextStyle(color: darkText),
                 ),
                 TextSpan(
                   text: '#Penghuni',
-                  style: TextStyle(color: Color(0xFF2563EB)),
+                  style: TextStyle(color: blue),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           const Text(
-            'Setiap penghuni punya cerita pengalaman mereka menemukan kost terbaik',
+            'Setiap pengguna punya cerita. Inilah\npengalaman mereka menemukan kost yang\ntepat bersama Sekitar',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.black54,
-              fontSize: 14,
+              color: greyText,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w400,
             ),
           ),
-          const SizedBox(height: 24),
-
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.black,
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  onPressed: () {},
+          const SizedBox(height: 30),
+          Container(
+            width: double.infinity,
+            height: 239,
+            padding: const EdgeInsets.fromLTRB(31, 28, 24, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(9),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 18,
+                  offset: const Offset(0, 5),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+              ],
+            ),
+            child: Stack(
+              children: [
+                const Positioned(
+                  left: 0,
+                  top: 0,
+                  child: Text(
+                    '“',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 56,
+                      height: 1,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                  child: const Column(
+                ),
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 72,
+                  child: Text(
+                    'Kosan nyaman, view bagus depan\nlapangan enak buat piknik',
+                    style: TextStyle(
+                      color: Color(0xFF6D6D6D),
+                      fontSize: 14,
+                      height: 1.1,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+                const Positioned(
+                  left: 0,
+                  bottom: 18,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.format_quote,
-                        size: 36,
-                        color: Colors.grey,
-                      ),
-                      SizedBox(height: 12),
                       Text(
-                        '"Kosan nyaman, view bagus depan lapangan enak buat piknik"',
-                        textAlign: TextAlign.center,
+                        '-Khasanah Uswatun',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Text(
-                        'Khasanah Uswatun',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
+                          color: darkText,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       Text(
                         'Mahasiswa',
                         style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                          color: Color(0xFFC3C3C3),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: Colors.black,
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_forward,
-                    color: Colors.white,
-                    size: 20,
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Row(
+                    children: [
+                      _circleArrow(Icons.arrow_back),
+                      const SizedBox(width: 6),
+                      _circleArrow(Icons.arrow_forward),
+                    ],
                   ),
-                  onPressed: () {},
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _sectionLabel(String title) {
+  Widget _circleArrow(IconData icon) {
+    return Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        icon,
+        color: Colors.white,
+        size: 12,
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
     return Row(
       children: [
         const Icon(
-          Icons.auto_awesome,
+          Icons.wb_sunny_outlined,
           size: 16,
-          color: Colors.grey,
+          color: Colors.black,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
         Text(
           title,
           style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+            color: darkText,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
     );
   }
 
-  Widget _roundedImage(String imageUrl, {required double height}) {
+  Widget _assetImageBox(
+    String path, {
+    required double height,
+    BorderRadius? borderRadius,
+  }) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
+      borderRadius: borderRadius ?? BorderRadius.circular(8),
+      child: SizedBox(
         height: height,
-        color: Colors.grey.shade300,
-        child: Image.network(
-          imageUrl,
+        width: double.infinity,
+        child: Image.asset(
+          path,
           fit: BoxFit.cover,
-          width: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              color: Colors.grey.shade300,
-              child: const Icon(
-                Icons.image_not_supported_outlined,
-                color: Colors.grey,
-              ),
-            );
-          },
         ),
       ),
     );
   }
-}
 
-class _FasilitasHeader extends StatelessWidget {
-  const _FasilitasHeader();
+  Widget _assetIcon(
+    String path, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.contain,
+  }) {
+    if (path.toLowerCase().endsWith('.svg')) {
+      return SvgPicture.asset(
+        path,
+        width: width,
+        height: height,
+        fit: fit,
+      );
+    }
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: const [
-            Icon(Icons.auto_awesome, size: 16, color: Colors.grey),
-            SizedBox(width: 8),
-            Text(
-              'FASILITAS',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const Text(
-          'Beberapa Fasilitas Rafa Kost',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Nikmati berbagai fasilitas yang dirancang untuk menunjang kenyamanan dan kebutuhan harian Anda.',
-          style: TextStyle(
-            color: Colors.black54,
-            fontSize: 14,
-          ),
-        ),
-      ],
+    return Image.asset(
+      path,
+      width: width,
+      height: height,
+      fit: fit,
     );
   }
 }

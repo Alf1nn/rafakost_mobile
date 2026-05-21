@@ -49,6 +49,10 @@ class _AuthCheckPageState extends State<AuthCheckPage> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('api_token');
 
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
     setState(() {
       loggedIn = token != null && token.isNotEmpty;
       loading = false;
@@ -58,13 +62,27 @@ class _AuthCheckPageState extends State<AuthCheckPage> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const SplashLogoPage();
     }
 
     return loggedIn ? const MainNavigationPage() : const LoginPage();
+  }
+}
+
+class SplashLogoPage extends StatelessWidget {
+  const SplashLogoPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Image.asset(
+          'assets/images/logosplash.png',
+          width: 210,
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
   }
 }
