@@ -3,8 +3,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'pages/login_page.dart';
 import 'pages/main_navigation_page.dart';
+import 'services/remote_controller.dart';
+import 'services/app_update_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  RemoteController.start();
+
   runApp(const RafaKostApp());
 }
 
@@ -56,6 +62,12 @@ class _AuthCheckPageState extends State<AuthCheckPage> {
     setState(() {
       loggedIn = token != null && token.isNotEmpty;
       loading = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdateService.check(context);
+      }
     });
   }
 

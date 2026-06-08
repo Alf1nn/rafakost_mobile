@@ -1,6 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../config/api_config.dart';
 
 import 'beranda_page.dart';
 import 'my_rentals_page.dart';
@@ -8,6 +15,7 @@ import 'rooms_page.dart';
 import 'maps_page.dart';
 import 'identity_page.dart';
 import 'login_page.dart';
+import 'payment_history_page.dart';
 
 class MainNavigationPage extends StatefulWidget {
   const MainNavigationPage({super.key});
@@ -29,12 +37,18 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     'Kamar',
     'Maps',
     'Verifikasi',
+    'Riwayat Invoice',
   ];
 
   @override
   void initState() {
     super.initState();
     loadUser();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      checkForUpdate();
+      checkTestimonialPopup();
+    });
   }
 
   Future<void> loadUser() async {
@@ -106,6 +120,523 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
     });
   }
 
+  Future<void> checkForUpdate() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final currentBuild = int.tryParse(info.buildNumber) ?? 0;
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/app-version'),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        return;
+      }
+
+      final latestBuild = int.tryParse(data['latest_build'].toString()) ?? 0;
+
+      if (latestBuild > currentBuild) {
+        showUpdateDialog(data);
+      }
+    } catch (_) {
+      // Diamkan saja agar tidak mengganggu user saat buka aplikasi.
+    }
+  }
+
+  void showUpdateDialog(Map data) {
+    final forceUpdate = data['force_update'] == true;
+    final message = data['message']?.toString() ??
+        'Versi baru tersedia. Silakan update aplikasi.';
+    final apkUrl = data['apk_url']?.toString() ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: !forceUpdate,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text(
+            'Update tersedia',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
+          content: Text(message),
+          actions: [
+            if (!forceUpdate)
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Nanti'),
+              ),
+            ElevatedButton(
+              onPressed: () async {
+                if (apkUrl.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Link update belum tersedia.'),
+                    ),
+                  );
+                  return;
+                }
+
+                final url = Uri.parse(apkUrl);
+
+                await launchUrl(
+                  url,
+                  mode: LaunchMode.externalApplication,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0EA5E9),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> checkTestimonialPopup() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('api_token');
+
+    if (token == null || token.isEmpty) return;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/testimonial/popup'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 &&
+          data['success'] == true &&
+          data['show_popup'] == true) {
+        showTestimonialPopup(data['booking']);
+      }
+    } catch (_) {
+      // Tidak perlu munculkan error agar user tidak terganggu saat buka app.
+    }
+  }
+
+  Future<void> submitTestimonial({
+    required int rating,
+    required String message,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('api_token');
+
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token login tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/testimonials'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'rating': rating,
+          'message': message,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        Navigator.pop(context);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Testimoni berhasil dikirim.'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Gagal mengirim testimoni.'),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak bisa terhubung ke server.'),
+        ),
+      );
+    }
+  }
+
+  void showTestimonialPopup(dynamic booking) {
+    final messageController = TextEditingController();
+    int rating = 5;
+
+    final invoice =
+        booking is Map ? booking['invoice']?.toString() ?? '-' : '-';
+
+    final kamar = booking is Map && booking['kamar'] is Map
+        ? booking['kamar']['nama']?.toString() ?? '-'
+        : '-';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 22),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.18),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF0EA5E9),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bagaimana kesan kamu tinggal di Rafa Kost?',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              height: 1.25,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Ceritakan pengalaman kamu selama menyewa kamar di Rafa Kost.',
+                            style: TextStyle(
+                              color: Color(0xFFE0F2FE),
+                              fontSize: 12,
+                              height: 1.45,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Invoice sewa',
+                                  style: TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  invoice,
+                                  style: const TextStyle(
+                                    color: Color(0xFF111827),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Kamar',
+                                  style: TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  kamar,
+                                  style: const TextStyle(
+                                    color: Color(0xFF111827),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Rating',
+                              style: TextStyle(
+                                color: Color(0xFF374151),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<int>(
+                            value: rating,
+                            decoration: InputDecoration(
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD1D5DB),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD1D5DB),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF0EA5E9),
+                                ),
+                              ),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 5,
+                                child: Text('⭐⭐⭐⭐⭐ Sangat puas'),
+                              ),
+                              DropdownMenuItem(
+                                value: 4,
+                                child: Text('⭐⭐⭐⭐ Puas'),
+                              ),
+                              DropdownMenuItem(
+                                value: 3,
+                                child: Text('⭐⭐⭐ Cukup'),
+                              ),
+                              DropdownMenuItem(
+                                value: 2,
+                                child: Text('⭐⭐ Kurang'),
+                              ),
+                              DropdownMenuItem(
+                                value: 1,
+                                child: Text('⭐ Tidak puas'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value == null) return;
+
+                              setDialogState(() {
+                                rating = value;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Kesan / Testimoni',
+                              style: TextStyle(
+                                color: Color(0xFF374151),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: messageController,
+                            minLines: 3,
+                            maxLines: 4,
+                            maxLength: 500,
+                            decoration: InputDecoration(
+                              hintText:
+                                  'Contoh: Kostnya nyaman, fasilitas lengkap, lingkungan aman...',
+                              hintStyle: const TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontSize: 12,
+                              ),
+                              counterText: '',
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.all(12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD1D5DB),
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFD1D5DB),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF0EA5E9),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Testimoni kamu akan langsung tampil di bagian Apa Kata Penghuni.',
+                              style: TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontSize: 11,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    Navigator.pop(dialogContext);
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF64748B),
+                                    side: const BorderSide(
+                                      color: Color(0xFFD1D5DB),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Nanti saja',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    final message =
+                                        messageController.text.trim();
+
+                                    if (message.length < 10) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Kesan minimal 10 karakter.',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    submitTestimonial(
+                                      rating: rating,
+                                      message: message,
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF0EA5E9),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Kirim',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
@@ -123,12 +654,11 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
       ),
       const MapsPage(),
       const IdentityPage(),
+      const PaymentHistoryPage(),
     ];
 
     return Scaffold(
       backgroundColor: Colors.white,
-
-      // TOP NAVBAR
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(42),
         child: SafeArea(
@@ -178,7 +708,6 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                     ],
                   ),
                 ),
-
                 PopupMenuButton<String>(
                   offset: const Offset(0, 34),
                   color: Colors.white,
@@ -187,6 +716,10 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   onSelected: (value) {
+                    if (value == 'payment_history') {
+                      goToTab(5);
+                    }
+
                     if (value == 'logout') {
                       logout();
                     }
@@ -241,6 +774,28 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
+                      value: 'payment_history',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.receipt_long_rounded,
+                            color: Color(0xFF111827),
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Riwayat Invoice',
+                            style: TextStyle(
+                              color: Color(0xFF111827),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const PopupMenuDivider(),
@@ -309,10 +864,7 @@ class _MainNavigationPageState extends State<MainNavigationPage> {
           ),
         ),
       ),
-
       body: pages[currentIndex],
-
-      // BOTTOM NAVBAR
       bottomNavigationBar: MediaQuery(
         data: MediaQuery.of(context).copyWith(
           textScaler: TextScaler.noScaling,

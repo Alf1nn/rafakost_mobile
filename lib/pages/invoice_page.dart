@@ -1,13 +1,28 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../config/api_config.dart';
 import 'payment_methods_page.dart';
 
-class InvoicePage extends StatelessWidget {
+class InvoicePage extends StatefulWidget {
   final Map booking;
 
   const InvoicePage({
     super.key,
     required this.booking,
   });
+
+  @override
+  State<InvoicePage> createState() => _InvoicePageState();
+}
+
+class _InvoicePageState extends State<InvoicePage> {
+  bool checkingPayment = false;
+
+  Map get booking => widget.booking;
 
   String rupiah(dynamic value) {
     final number = int.tryParse(value.toString()) ?? 0;
@@ -28,6 +43,154 @@ class InvoicePage extends StatelessWidget {
     }
 
     return text;
+  }
+
+  Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('api_token');
+  }
+
+  Future<void> continuePayment(BuildContext context) async {
+    if (checkingPayment) return;
+
+    final invoice = safe(booking['invoice']);
+    final paymentStatus = safe(booking['payment_status']).toLowerCase();
+
+    if (invoice == '-') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invoice tidak valid.'),
+        ),
+      );
+      return;
+    }
+
+    if (paymentStatus != 'pending') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invoice ini tidak bisa dilanjutkan pembayaran.'),
+        ),
+      );
+      return;
+    }
+
+    final identityStatus = safe(booking['identity_status']).toLowerCase();
+
+    if (identityStatus != '-' && identityStatus != 'approved') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            booking['pay_blocked_message']?.toString() ??
+                'Akun kamu belum terverifikasi. Silakan verifikasi dokumen terlebih dahulu sebelum melakukan pembayaran.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (booking.containsKey('can_pay') && booking['can_pay'] != true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            booking['pay_blocked_message']?.toString() ??
+                'Invoice ini tidak bisa dilanjutkan pembayaran.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      checkingPayment = true;
+    });
+
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      if (!mounted) return;
+
+      setState(() {
+        checkingPayment = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Token login tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/invoices/$invoice'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (!mounted) return;
+
+      if (response.statusCode == 403) {
+        setState(() {
+          checkingPayment = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              data['message'] ??
+                  'Akun kamu belum terverifikasi. Silakan verifikasi dokumen terlebih dahulu sebelum melakukan pembayaran.',
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      if (response.statusCode != 200 || data['success'] != true) {
+        setState(() {
+          checkingPayment = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Invoice tidak bisa diproses.'),
+          ),
+        );
+
+        return;
+      }
+
+      setState(() {
+        checkingPayment = false;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PaymentMethodsPage(
+            invoice: invoice,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        checkingPayment = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tidak bisa terhubung ke server.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -119,16 +282,7 @@ class InvoicePage extends StatelessWidget {
             height: 48,
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PaymentMethodsPage(
-                      invoice: booking['invoice'],
-                    ),
-                  ),
-                );
-              },
+              onPressed: () => continuePayment(context),
               icon: const Icon(
                 Icons.payment_rounded,
                 size: 18,
